@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ticket Booking System</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 40px;
+      width: 380px;
+      text-align: center;
+      color: #fff;
+    }
+
+    .icon { font-size: 60px; margin-bottom: 10px; }
+
+    h1 { font-size: 24px; margin-bottom: 6px; }
+
+    p.subtitle {
+      color: rgba(255,255,255,0.5);
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+
+    .seats-box {
+      background: rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 25px;
+    }
+
+    .seats-box .label {
+      font-size: 13px;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 6px;
+    }
+
+    .seats-count {
+      font-size: 48px;
+      font-weight: bold;
+      color: #e94560;
+    }
+
+    .seats-total {
+      font-size: 13px;
+      color: rgba(255,255,255,0.4);
+      margin-top: 4px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #e94560;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover:not(:disabled) { background: #c73652; transform: translateY(-2px); }
+    button:disabled { background: #555; cursor: not-allowed; transform: none; }
+
+    .message {
+      margin-top: 20px;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .message.success { background: rgba(39,174,96,0.2); border: 1px solid #27ae60; color: #2ecc71; }
+    .message.error   { background: rgba(231,76,60,0.2);  border: 1px solid #e74c3c; color: #e74c3c; }
+    .message.warning { background: rgba(241,196,15,0.2); border: 1px solid #f1c40f; color: #f1c40f; }
+
+    .booking-id {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🎟️</div>
+    <h1>Ticket Booking</h1>
+    <p class="subtitle">Book your seat before they run out!</p>
+
+    <div class="seats-box">
+      <div class="label">Available Seats</div>
+      <div class="seats-count" id="seatsCount">100</div>
+      <div class="seats-total">out of 100 total</div>
+    </div>
+
+    <button id="bookBtn" onclick="bookTicket()">Book Now</button>
+
+    <div class="message" id="message"></div>
+    <div class="booking-id" id="bookingId"></div>
+  </div>
+
+  <script>
+    const API = 'http://localhost:3000';
+
+    async function bookTicket() {
+      const btn = document.getElementById('bookBtn');
+      const msg = document.getElementById('message');
+      const bidEl = document.getElementById('bookingId');
+
+      btn.disabled = true;
+      btn.textContent = 'Booking...';
+      msg.style.display = 'none';
+      bidEl.textContent = '';
+
+      try {
+        const res = await fetch(`${API}/api/book`, { method: 'POST' });
+        const data = await res.json();
+
+        if (data.success) {
+          document.getElementById('seatsCount').textContent = data.remaining;
+          showMessage('success', '✅ Booking Confirmed!');
+          bidEl.textContent = `Booking ID: ${data.bookingId}`;
+          if (data.remaining === 0) {
+            btn.textContent = 'Sold Out';
+            btn.disabled = true;
+            return;
+          }
+        } else if (res.status === 429) {
+          showMessage('warning', '⚠️ Server busy, please try again.');
+        } else {
+          showMessage('error', '❌ ' + (data.message || 'Booking failed.'));
+          if (data.message === 'Sold out') {
+            btn.textContent = 'Sold Out';
+            btn.disabled = true;
+            return;
+          }
+        }
+      } catch (e) {
+        showMessage('error', '❌ Cannot connect to server.');
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Book Now';
+    }
+
+    function showMessage(type, text) {
+      const msg = document.getElementById('message');
+      msg.className = `message ${type}`;
+      msg.textContent = text;
+      msg.style.display = 'block';
+    }
+  </script>
+</body>
+</html>
